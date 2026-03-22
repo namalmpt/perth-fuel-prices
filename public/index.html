@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Fuel Prices">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/icon-192.svg">
+  <title>Perth Fuel Prices</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: contain;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-bottom: 1px solid #334155;
+      padding: 1.5rem 2rem;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header p {
+      color: #94a3b8;
+      margin-top: 0.3rem;
+      font-size: 0.9rem;
+    }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .filter-group label {
+      display: block;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.3rem;
+    }
+
+    .filter-group select, .filter-group input {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .filter-group select:focus, .filter-group input:focus {
+      border-color: #38bdf8;
+    }
+
+    .btn {
+      padding: 0.6rem 1.5rem;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      align-self: end;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat-card .label {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-card .value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-top: 0.25rem;
+    }
+
+    .stat-card.lowest .value { color: #4ade80; }
+    .stat-card.average .value { color: #38bdf8; }
+    .stat-card.highest .value { color: #f87171; }
+
+    .station-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .station {
+      display: grid;
+      grid-template-columns: 80px 1fr auto;
+      align-items: center;
+      gap: 1rem;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      transition: border-color 0.2s;
+    }
+
+    .station:hover { border-color: #475569; }
+
+    .station.cheapest { border-color: #4ade80; }
+
+    .station .price {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #4ade80;
+      text-align: center;
+    }
+
+    .station .price span {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      display: block;
+      font-weight: 400;
+    }
+
+    .station .info h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .station .info .address-link {
+      display: block;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-top: 0.15rem;
+      text-decoration: none;
+      border-bottom: 1px dashed #475569;
+      padding-bottom: 1px;
+      width: fit-content;
+    }
+
+    .station .info .address-link:active {
+      color: #38bdf8;
+    }
+
+    .station .brand-tag {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.75rem;
+      background: #334155;
+      border-radius: 20px;
+      color: #cbd5e1;
+      white-space: nowrap;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: #64748b;
+    }
+
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #334155;
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error {
+      text-align: center;
+      padding: 2rem;
+      color: #f87171;
+      background: #1e293b;
+      border: 1px solid #7f1d1d;
+      border-radius: 12px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 3rem;
+      color: #64748b;
+    }
+
+    .attribution {
+      text-align: center;
+      padding: 2rem 0;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+
+    .attribution a { color: #38bdf8; text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .stats { grid-template-columns: repeat(3, 1fr); }
+      .station { grid-template-columns: 70px 1fr; }
+      .station .brand-tag { display: none; }
+      .filters { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Perth Fuel Prices</h1>
+    <p>Real-time prices from FuelWatch WA</p>
+  </header>
+
+  <div class="container">
+    <div class="filters">
+      <div class="filter-group">
+        <label>Fuel Type</label>
+        <select id="product">
+          <option value="1">Unleaded (ULP)</option>
+          <option value="2">Premium Unleaded</option>
+          <option value="4">Diesel</option>
+          <option value="5">LPG</option>
+          <option value="6">98 RON</option>
+          <option value="11">Brand Diesel</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Region</label>
+        <select id="region">
+          <option value="">All Perth Metro</option>
+          <option value="25">North of River</option>
+          <option value="26">South of River</option>
+          <option value="27">East / Hills</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Suburb</label>
+        <input type="text" id="suburb" placeholder="e.g. Fremantle">
+      </div>
+
+      <div class="filter-group">
+        <label>Brand</label>
+        <select id="brand">
+          <option value="">All Brands</option>
+          <option value="2">Ampol</option>
+          <option value="5">BP</option>
+          <option value="7">Gull</option>
+          <option value="10">Liberty</option>
+          <option value="14">Shell</option>
+          <option value="20">Coles Express</option>
+          <option value="23">United</option>
+          <option value="27">Vibe</option>
+          <option value="29">7-Eleven</option>
+          <option value="32">Costco</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Day</label>
+        <select id="day">
+          <option value="today">Today</option>
+          <option value="tomorrow">Tomorrow</option>
+          <option value="yesterday">Yesterday</option>
+        </select>
+      </div>
+
+      <button class="btn" id="searchBtn" onclick="fetchPrices()">Search</button>
+    </div>
+
+    <div id="stats" class="stats" style="display:none;"></div>
+    <div id="results"></div>
+
+    <div class="attribution">
+      Data sourced from <a href="https://www.fuelwatch.wa.gov.au" target="_blank">FuelWatch WA</a>
+    </div>
+  </div>
+
+  <script>
+    async function fetchPrices() {
+      const btn = document.getElementById("searchBtn");
+      const results = document.getElementById("results");
+      const statsEl = document.getElementById("stats");
+
+      btn.disabled = true;
+      btn.textContent = "Loading...";
+      results.innerHTML = '<div class="loading"><div class="spinner"></div>Fetching prices...</div>';
+      statsEl.style.display = "none";
+
+      const params = new URLSearchParams();
+      const product = document.getElementById("product").value;
+      const region = document.getElementById("region").value;
+      const suburb = document.getElementById("suburb").value.trim();
+      const brand = document.getElementById("brand").value;
+      const day = document.getElementById("day").value;
+
+      if (product) params.set("product", product);
+      if (suburb) {
+        params.set("suburb", suburb);
+      } else if (region) {
+        params.set("region", region);
+      }
+      if (brand) params.set("brand", brand);
+      if (day) params.set("day", day);
+
+      try {
+        const res = await fetch(`/api/fuel?${params}`);
+        if (!res.ok) throw new Error("Server error");
+        const data = await res.json();
+
+        if (!data.stations || data.stations.length === 0) {
+          results.innerHTML = '<div class="empty">No stations found. Try different filters.</div>';
+          btn.disabled = false;
+          btn.textContent = "Search";
+          return;
+        }
+
+        const prices = data.stations.map((s) => s.price);
+        const lowest = Math.min(...prices);
+        const highest = Math.max(...prices);
+        const avg = (prices.reduce((a, b) => a + b, 0) / prices.length).toFixed(1);
+
+        statsEl.style.display = "grid";
+        statsEl.innerHTML = `
+          <div class="stat-card lowest">
+            <div class="label">Lowest</div>
+            <div class="value">${lowest.toFixed(1)}¢</div>
+          </div>
+          <div class="stat-card average">
+            <div class="label">Average</div>
+            <div class="value">${avg}¢</div>
+          </div>
+          <div class="stat-card highest">
+            <div class="label">Highest</div>
+            <div class="value">${highest.toFixed(1)}¢</div>
+          </div>
+        `;
+
+        const INITIAL_COUNT = 20;
+        const visible = data.stations.slice(0, INITIAL_COUNT);
+        const remaining = data.stations.length - INITIAL_COUNT;
+
+        function renderStation(s) {
+          const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}`;
+          return `<div class="station${s.price === lowest ? " cheapest" : ""}">
+              <div class="price">${s.price.toFixed(1)}<span>¢/L</span></div>
+              <div class="info">
+                <h3>${escapeHtml(s.name)}</h3>
+                <a href="${mapsUrl}" target="_blank" rel="noopener" class="address-link">${escapeHtml(s.address)}, ${escapeHtml(s.suburb)}</a>
+              </div>
+              <div class="brand-tag">${escapeHtml(s.brand)}</div>
+            </div>`;
+        }
+
+        results.innerHTML = '<div class="station-list" id="stationList">' +
+          visible.map(renderStation).join("") +
+          '</div>' +
+          (remaining > 0 ? `<button class="btn" style="display:block;margin:1rem auto;" onclick="showAll()">Show ${remaining} more stations</button>` : "");
+
+        window._allStations = data.stations;
+        window._lowest = lowest;
+        window.showAll = function() {
+          document.getElementById("stationList").innerHTML =
+            window._allStations.map(renderStation).join("");
+          const moreBtn = this?.closest?.("button") || document.querySelector("#results .btn");
+          if (moreBtn) moreBtn.remove();
+        };
+        window.renderStation = renderStation;
+      } catch (err) {
+        results.innerHTML = `<div class="error">Failed to load prices. Please try again.</div>`;
+      }
+
+      btn.disabled = false;
+      btn.textContent = "Search";
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Load prices on page load
+    fetchPrices();
+
+    // Register service worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js");
+    }
+
+    // PWA install prompt
+    let deferredPrompt;
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const banner = document.createElement("div");
+      banner.id = "installBanner";
+      banner.style.cssText = "position:fixed;bottom:0;left:0;right:0;background:#1e293b;border-top:1px solid #334155;padding:1rem;display:flex;align-items:center;justify-content:space-between;z-index:100;padding-bottom:calc(1rem + env(safe-area-inset-bottom))";
+      banner.innerHTML = '<span style="color:#e2e8f0;font-size:0.9rem">Install as app for quick access</span><button style="padding:0.5rem 1.25rem;background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer" id="installBtn">Install</button>';
+      document.body.appendChild(banner);
+      document.getElementById("installBtn").addEventListener("click", async () => {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        banner.remove();
+      });
+    });
+  </script>
+</body>
+</html>

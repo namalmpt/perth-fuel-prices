@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.fuelwatch.wa.gov.au)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -s -I -X OPTIONS -H \"Origin: http://localhost:3000\" -H \"Access-Control-Request-Method: GET\" \"https://www.fuelwatch.wa.gov.au/fuelwatch/fuelWatchRSS\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(node -e \":*)",
+      "Bash(git --version)"
+    ]
+  }
+}

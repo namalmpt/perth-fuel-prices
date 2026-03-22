@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="34.56" fill="#0f172a"/>
+  <rect x="48" y="38.400000000000006" width="67.19999999999999" height="86.4" rx="5.76" fill="#1e293b" stroke="#38bdf8" stroke-width="3.84"/>
+  <rect x="58.08" y="51.36000000000001" width="47.03999999999999" height="30.24" rx="3.84" fill="#38bdf8" opacity="0.3"/>
+  <text x="96" y="157.44" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="30.72" fill="#4ade80">FUEL</text>
+  <path d="M 120.96 51.36000000000001 Q 144 51.36000000000001 144 68.64 L 144 90.24000000000001" fill="none" stroke="#94a3b8" stroke-width="4.800000000000001" stroke-linecap="round"/>
+  <circle cx="144" cy="94.56" r="5.76" fill="#94a3b8"/>
+</svg>
