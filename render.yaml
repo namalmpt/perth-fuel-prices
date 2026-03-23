@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: perth-golf-teetimes
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node golf-server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
