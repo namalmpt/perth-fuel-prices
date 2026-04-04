@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="40" fill="#0f172a"/>
+  <path d="M30 140 L55 95 L75 115 L105 55 L130 85 L162 35" stroke="#ef4444" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M105 55 L130 85 L162 35" stroke="#34d399" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="8,4"/>
+  <circle cx="105" cy="55" r="8" fill="#f59e0b"/>
+  <circle cx="105" cy="55" r="4" fill="#0f172a"/>
+  <text x="96" y="170" font-family="sans-serif" font-size="28" font-weight="bold" fill="#f59e0b" text-anchor="middle">ALERT</text>
+</svg>

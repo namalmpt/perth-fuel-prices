@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "start:golf": "node golf-server.js",
+    "start:market": "node market-server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -16,6 +17,7 @@
     "cheerio": "^1.2.0",
     "express": "^5.2.1",
     "sharp": "^0.34.5",
+    "web-push": "^3.6.7",
     "xml2js": "^0.6.2"
   }
 }

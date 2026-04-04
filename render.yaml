@@ -8,3 +8,26 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+  - type: web
+    name: market-bottom-alerts
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node market-server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: IG_API_KEY
+        sync: false
+      - key: IG_USERNAME
+        sync: false
+      - key: IG_PASSWORD
+        sync: false
+      - key: IG_API_URL
+        value: https://demo-api.ig.com/gateway/deal
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_EMAIL
+        sync: false

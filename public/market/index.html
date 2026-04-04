@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Market Bottom Alert</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a; color: #e2e8f0; min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      padding: 16px 20px 12px; border-bottom: 1px solid #1e293b;
+      position: sticky; top: 0; z-index: 100;
+    }
+    header h1 {
+      font-size: 20px; font-weight: 700;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    header .subtitle { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+    /* Tabs */
+    .tabs {
+      display: flex; gap: 0; background: #1e293b; border-bottom: 1px solid #334155;
+      position: sticky; top: 64px; z-index: 99;
+    }
+    .tab {
+      flex: 1; padding: 10px; text-align: center; font-size: 13px; font-weight: 600;
+      color: #64748b; cursor: pointer; border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .tab.active { color: #f59e0b; border-bottom-color: #f59e0b; }
+    .tab-content { display: none; padding: 16px; }
+    .tab-content.active { display: block; }
+
+    /* Market Cards */
+    .market-card {
+      background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px;
+      border: 1px solid #334155;
+    }
+    .market-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .market-name { font-size: 16px; font-weight: 700; }
+    .market-status {
+      font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: 600;
+    }
+    .status-open { background: #064e3b; color: #34d399; }
+    .status-closed { background: #3b0764; color: #c084fc; }
+
+    .price-row { display: flex; gap: 16px; align-items: baseline; margin-bottom: 16px; }
+    .price-main { font-size: 28px; font-weight: 700; }
+    .price-change { font-size: 14px; font-weight: 600; }
+    .price-up { color: #34d399; }
+    .price-down { color: #f87171; }
+
+    /* Score Gauge */
+    .gauge-container { display: flex; align-items: center; gap: 20px; margin-bottom: 16px; }
+    .gauge { position: relative; width: 100px; height: 100px; flex-shrink: 0; }
+    .gauge canvas { width: 100px; height: 100px; }
+    .gauge-label {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .gauge-score { font-size: 24px; font-weight: 800; line-height: 1; }
+    .gauge-text { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+
+    .level-badge {
+      display: inline-block; padding: 4px 10px; border-radius: 6px;
+      font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .level-normal { background: #1e3a5f; color: #60a5fa; }
+    .level-watch { background: #713f12; color: #fbbf24; }
+    .level-alert { background: #7c2d12; color: #fb923c; }
+    .level-strong { background: #7f1d1d; color: #f87171; }
+
+    /* Signals */
+    .signals-list { margin-top: 12px; }
+    .signal-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid #334155; font-size: 13px;
+    }
+    .signal-item:last-child { border-bottom: none; }
+    .signal-name { color: #94a3b8; }
+    .signal-value { font-weight: 600; }
+    .signal-pts { color: #f59e0b; font-weight: 700; font-size: 12px; min-width: 40px; text-align: right; }
+
+    /* Indicator Row */
+    .indicator-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      margin-top: 12px;
+    }
+    .indicator-box {
+      background: #0f172a; border-radius: 8px; padding: 10px; text-align: center;
+    }
+    .indicator-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .indicator-value { font-size: 16px; font-weight: 700; margin-top: 4px; }
+
+    /* Sparkline */
+    .sparkline-container { margin-top: 12px; }
+    .sparkline-canvas { width: 100%; height: 60px; border-radius: 8px; background: #0f172a; }
+
+    /* Chart */
+    .chart-section { margin-top: 16px; }
+    .chart-controls {
+      display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;
+    }
+    .chart-btn {
+      padding: 6px 14px; border-radius: 6px; border: 1px solid #334155;
+      background: #1e293b; color: #94a3b8; font-size: 12px; font-weight: 600;
+      cursor: pointer;
+    }
+    .chart-btn.active { background: #f59e0b; color: #0f172a; border-color: #f59e0b; }
+    .chart-market-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #94a3b8; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .chart-market-btn.active { background: #334155; color: #e2e8f0; border-color: #f59e0b; }
+    .chart-canvas-wrap { background: #0f172a; border-radius: 12px; padding: 8px; }
+    .chart-canvas-wrap canvas { width: 100%; display: block; border-radius: 8px; }
+
+    /* Alerts Tab */
+    .alert-item {
+      background: #1e293b; border-radius: 10px; padding: 14px; margin-bottom: 10px;
+      border-left: 4px solid;
+    }
+    .alert-item.level-watch { border-left-color: #fbbf24; }
+    .alert-item.level-alert { border-left-color: #fb923c; }
+    .alert-item.level-strong { border-left-color: #f87171; }
+    .alert-item.acknowledged { opacity: 0.5; }
+    .alert-header { display: flex; justify-content: space-between; align-items: center; }
+    .alert-market { font-weight: 700; font-size: 14px; }
+    .alert-time { font-size: 11px; color: #64748b; }
+    .alert-body { margin-top: 8px; font-size: 13px; color: #94a3b8; }
+    .alert-score { font-weight: 700; color: #f59e0b; }
+    .alert-ack-btn {
+      margin-top: 8px; padding: 5px 12px; border-radius: 6px; border: 1px solid #334155;
+      background: transparent; color: #94a3b8; font-size: 11px; cursor: pointer;
+    }
+    .alert-ack-btn:hover { background: #334155; }
+    .empty-state { text-align: center; padding: 40px; color: #64748b; font-size: 14px; }
+
+    /* Settings */
+    .setting-group { background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+    .setting-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+    .setting-desc { font-size: 11px; color: #64748b; margin-bottom: 8px; }
+    .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .toggle {
+      width: 44px; height: 24px; border-radius: 12px; background: #334155;
+      position: relative; cursor: pointer; transition: background 0.2s;
+    }
+    .toggle.on { background: #f59e0b; }
+    .toggle::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 20px; height: 20px; border-radius: 50%; background: white;
+      transition: transform 0.2s;
+    }
+    .toggle.on::after { transform: translateX(20px); }
+    .connection-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .dot-green { background: #34d399; }
+    .dot-red { background: #f87171; }
+    .dot-yellow { background: #fbbf24; }
+    .btn {
+      padding: 10px 20px; border-radius: 8px; border: none; font-size: 13px;
+      font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-amber { background: #f59e0b; color: #0f172a; }
+    .btn-outline { background: transparent; border: 1px solid #334155; color: #94a3b8; }
+
+    /* Toast */
+    .toast {
+      position: fixed; top: 20px; right: 20px; background: #1e293b; border: 1px solid #334155;
+      border-radius: 12px; padding: 14px 20px; z-index: 1000; max-width: 320px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: translateX(400px);
+      transition: transform 0.3s ease;
+    }
+    .toast.show { transform: translateX(0); }
+    .toast-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+    .toast-body { font-size: 12px; color: #94a3b8; }
+
+    .last-update { font-size: 11px; color: #475569; text-align: center; padding: 8px; }
+
+    @media (min-width: 640px) {
+      .markets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .market-card { margin-bottom: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Market Bottom Alert</h1>
+    <div class="subtitle">ASX 200 & S&P 500 CFD Bottom Detection</div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="dashboard">Dashboard</div>
+    <div class="tab" data-tab="alerts">Alerts <span id="alert-count"></span></div>
+    <div class="tab" data-tab="settings">Settings</div>
+  </div>
+
+  <!-- Dashboard Tab -->
+  <div class="tab-content active" id="tab-dashboard">
+    <div class="markets-grid" id="markets-grid"></div>
+
+    <div class="chart-section">
+      <div class="chart-controls">
+        <button class="chart-market-btn active" data-chart-market="0">ASX 200</button>
+        <button class="chart-market-btn" data-chart-market="1">S&P 500</button>
+        <div style="flex:1"></div>
+        <button class="chart-btn" data-res="candles5m">5m</button>
+        <button class="chart-btn" data-res="candles1h">1h</button>
+        <button class="chart-btn active" data-res="candles1d">1d</button>
+      </div>
+      <div class="chart-canvas-wrap">
+        <canvas id="mainChart" height="280"></canvas>
+      </div>
+      <div class="chart-canvas-wrap" style="margin-top:8px">
+        <canvas id="rsiChart" height="80"></canvas>
+      </div>
+      <div class="chart-canvas-wrap" style="margin-top:8px">
+        <canvas id="macdChart" height="80"></canvas>
+      </div>
+    </div>
+    <div class="last-update" id="last-update"></div>
+  </div>
+
+  <!-- Alerts Tab -->
+  <div class="tab-content" id="tab-alerts">
+    <div id="alerts-list"></div>
+  </div>
+
+  <!-- Settings Tab -->
+  <div class="tab-content" id="tab-settings">
+    <div class="setting-group">
+      <div class="setting-label">IG Markets Connection</div>
+      <div class="setting-row">
+        <span><span class="connection-dot dot-yellow" id="conn-dot"></span><span id="conn-status">Checking...</span></span>
+        <button class="btn btn-outline" onclick="retryAuth()" id="retry-btn" style="display:none">Retry</button>
+      </div>
+      <div id="conn-detail" style="font-size:11px;color:#64748b;margin-top:4px"></div>
+    </div>
+    <div class="setting-group">
+      <div class="setting-label">Push Notifications</div>
+      <div class="setting-desc">Receive alerts even when the dashboard is closed</div>
+      <div class="setting-row">
+        <span>Enable push notifications</span>
+        <div class="toggle" id="toggle-push" onclick="togglePush()"></div>
+      </div>
+    </div>
+    <div class="setting-group">
+      <div class="setting-label">Audio Alerts</div>
+      <div class="setting-desc">Play a sound when a bottom signal is detected</div>
+      <div class="setting-row">
+        <span>Enable audio alerts</span>
+        <div class="toggle on" id="toggle-audio" onclick="toggleAudio()"></div>
+      </div>
+    </div>
+    <div class="setting-group">
+      <div class="setting-label">Actions</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn btn-amber" onclick="testAlert()">Test Alert</button>
+        <button class="btn btn-outline" onclick="searchMarkets()">Search Markets</button>
+      </div>
+    </div>
+    <div class="setting-group" id="search-results" style="display:none">
+      <div class="setting-label">Search Results</div>
+      <input type="text" id="search-input" placeholder="e.g. ASX, S&P, Australia 200..."
+        style="width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:13px;margin-bottom:8px">
+      <button class="btn btn-amber" onclick="doSearch()" style="margin-bottom:8px">Search</button>
+      <div id="search-list" style="font-size:12px;color:#94a3b8;max-height:200px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <div class="toast-title" id="toast-title"></div>
+    <div class="toast-body" id="toast-body"></div>
+  </div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────────────────
+    let marketsData = [];
+    let chartData = null;
+    let selectedMarketIdx = 0;
+    let selectedResolution = 'candles1d';
+    let audioEnabled = true;
+    let pushEnabled = false;
+    let audioCtx = null;
+
+    // ── Tabs ──────────────────────────────────────────────────────────
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        if (tab.dataset.tab === 'alerts') loadAlerts();
+      });
+    });
+
+    // ── Chart Market/Resolution Buttons ───────────────────────────────
+    document.querySelectorAll('.chart-market-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.chart-market-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedMarketIdx = parseInt(btn.dataset.chartMarket);
+        loadChartData();
+      });
+    });
+    document.querySelectorAll('.chart-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedResolution = btn.dataset.res;
+        renderCharts();
+      });
+    });
+
+    // ── Fetch Market Status ───────────────────────────────────────────
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/market/status');
+        const data = await res.json();
+        marketsData = data.markets;
+        renderMarketCards();
+        updateConnectionStatus(true);
+        const lastUpdate = marketsData.find(m => m.lastUpdate)?.lastUpdate;
+        if (lastUpdate) {
+          document.getElementById('last-update').textContent = 'Last updated: ' + new Date(lastUpdate).toLocaleTimeString();
+        }
+      } catch (e) {
+        updateConnectionStatus(false);
+      }
+    }
+
+    async function updateConnectionStatus(serverReachable) {
+      const dot = document.getElementById('conn-dot');
+      const status = document.getElementById('conn-status');
+      const detail = document.getElementById('conn-detail');
+      const retryBtn = document.getElementById('retry-btn');
+      const hasData = marketsData.some(m => m.lastUpdate);
+
+      try {
+        const res = await fetch('/api/market/connection');
+        const conn = await res.json();
+        if (conn.authenticated && hasData) {
+          dot.className = 'connection-dot dot-green';
+          status.textContent = 'Connected to IG Markets';
+          detail.textContent = `User: ${conn.username} | ${conn.apiUrl.includes('demo') ? 'Demo' : 'Live'}`;
+          retryBtn.style.display = 'none';
+        } else if (conn.authPaused) {
+          dot.className = 'connection-dot dot-red';
+          status.textContent = 'Auth failed — check API key';
+          detail.textContent = `${conn.authFailCount} failed attempts. User: ${conn.username}`;
+          retryBtn.style.display = 'inline-block';
+        } else if (conn.hasApiKey) {
+          dot.className = 'connection-dot dot-yellow';
+          status.textContent = 'Connecting to IG Markets...';
+          detail.textContent = `User: ${conn.username}`;
+          retryBtn.style.display = 'none';
+        } else {
+          dot.className = 'connection-dot dot-red';
+          status.textContent = 'No API key configured';
+          detail.textContent = 'Set IG_API_KEY, IG_USERNAME, IG_PASSWORD env vars';
+          retryBtn.style.display = 'none';
+        }
+      } catch {
+        dot.className = 'connection-dot dot-red';
+        status.textContent = 'Server unreachable';
+        detail.textContent = '';
+        retryBtn.style.display = 'none';
+      }
+    }
+
+    async function retryAuth() {
+      const retryBtn = document.getElementById('retry-btn');
+      retryBtn.textContent = 'Retrying...';
+      retryBtn.disabled = true;
+      try {
+        const res = await fetch('/api/market/retry-auth', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          showToast('Connected', 'Successfully authenticated with IG Markets');
+          fetchStatus();
+        } else {
+          showToast('Auth Failed', data.message);
+        }
+      } catch (e) {
+        showToast('Error', e.message);
+      }
+      retryBtn.textContent = 'Retry';
+      retryBtn.disabled = false;
+      updateConnectionStatus(true);
+    }
+
+    // ── Render Market Cards ───────────────────────────────────────────
+    function renderMarketCards() {
+      const grid = document.getElementById('markets-grid');
+      grid.innerHTML = marketsData.map((m, idx) => {
+        const price = m.price;
+        const changeClass = price && price.change >= 0 ? 'price-up' : 'price-down';
+        const changeSign = price && price.change >= 0 ? '+' : '';
+        return `
+          <div class="market-card">
+            <div class="market-header">
+              <span class="market-name">${m.name}</span>
+              <span class="market-status ${m.marketOpen ? 'status-open' : 'status-closed'}">
+                ${m.marketOpen ? 'OPEN' : 'CLOSED'}
+              </span>
+            </div>
+            ${price ? `
+              <div class="price-row">
+                <span class="price-main">${price.mid.toFixed(1)}</span>
+                <span class="price-change ${changeClass}">
+                  ${changeSign}${price.change?.toFixed(1) || '0'} (${changeSign}${price.changePct?.toFixed(2) || '0'}%)
+                </span>
+              </div>
+            ` : '<div class="price-row"><span class="price-main" style="color:#64748b">Awaiting data...</span></div>'}
+            <div class="gauge-container">
+              <div class="gauge">
+                <canvas id="gauge-${idx}" width="200" height="200"></canvas>
+                <div class="gauge-label">
+                  <div class="gauge-score">${m.score}</div>
+                  <div class="gauge-text">/ 100</div>
+                </div>
+              </div>
+              <div>
+                <span class="level-badge level-${m.level}">${m.level}</span>
+                <div class="indicator-row" style="margin-top:8px">
+                  <div class="indicator-box">
+                    <div class="indicator-label">RSI (D)</div>
+                    <div class="indicator-value" style="color:${getRSIColor(m.indicators?.rsiDaily)}">${m.indicators?.rsiDaily?.toFixed(1) || '--'}</div>
+                  </div>
+                  <div class="indicator-box">
+                    <div class="indicator-label">RSI (H)</div>
+                    <div class="indicator-value" style="color:${getRSIColor(m.indicators?.rsiHourly)}">${m.indicators?.rsiHourly?.toFixed(1) || '--'}</div>
+                  </div>
+                  <div class="indicator-box">
+                    <div class="indicator-label">ROC</div>
+                    <div class="indicator-value" style="color:${(m.indicators?.roc || 0) < 0 ? '#f87171' : '#34d399'}">${m.indicators?.roc?.toFixed(2) || '--'}%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            ${m.signals.length > 0 ? `
+              <div class="signals-list">
+                ${m.signals.map(s => `
+                  <div class="signal-item">
+                    <span class="signal-name">${s.name}</span>
+                    <span class="signal-value">${s.value}</span>
+                    <span class="signal-pts">+${s.points}</span>
+                  </div>
+                `).join('')}
+              </div>
+            ` : '<div style="color:#475569;font-size:12px;padding:8px 0">No active bottom signals</div>'}
+            <div class="sparkline-container">
+              <canvas class="sparkline-canvas" id="spark-${idx}" height="60"></canvas>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Draw gauges and sparklines
+      marketsData.forEach((m, idx) => {
+        drawGauge(document.getElementById(`gauge-${idx}`), m.score, m.level);
+      });
+      // Load sparkline data
+      marketsData.forEach((m, idx) => {
+        loadSparkline(m.epic, idx);
+      });
+    }
+
+    function getRSIColor(rsi) {
+      if (rsi == null) return '#64748b';
+      if (rsi < 20) return '#f87171';
+      if (rsi < 30) return '#fb923c';
+      if (rsi > 70) return '#34d399';
+      return '#e2e8f0';
+    }
+
+    // ── Draw Gauge ────────────────────────────────────────────────────
+    function drawGauge(canvas, score, level) {
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2, r = w * 0.4;
+      ctx.clearRect(0, 0, w, h);
+
+      // Background arc
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0.75 * Math.PI, 2.25 * Math.PI);
+      ctx.lineWidth = w * 0.08;
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Score arc
+      const colors = { normal: '#3b82f6', watch: '#fbbf24', alert: '#fb923c', strong: '#ef4444' };
+      const angle = 0.75 * Math.PI + (score / 100) * 1.5 * Math.PI;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0.75 * Math.PI, angle);
+      ctx.lineWidth = w * 0.08;
+      ctx.strokeStyle = colors[level] || '#3b82f6';
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+
+    // ── Sparkline ─────────────────────────────────────────────────────
+    async function loadSparkline(epic, idx) {
+      try {
+        const res = await fetch(`/api/market/history/${epic}`);
+        const data = await res.json();
+        const candles = (data.candles5m || []).slice(-50);
+        drawSparkline(document.getElementById(`spark-${idx}`), candles);
+      } catch (e) { /* ignore */ }
+    }
+
+    function drawSparkline(canvas, candles) {
+      if (!canvas || candles.length === 0) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      const w = rect.width, h = rect.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const closes = candles.map(c => c.close);
+      const min = Math.min(...closes);
+      const max = Math.max(...closes);
+      const range = max - min || 1;
+
+      // Fill gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      const isUp = closes[closes.length - 1] >= closes[0];
+      grad.addColorStop(0, isUp ? 'rgba(52,211,153,0.3)' : 'rgba(248,113,113,0.3)');
+      grad.addColorStop(1, 'rgba(15,23,42,0)');
+
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      for (let i = 0; i < closes.length; i++) {
+        const x = (i / (closes.length - 1)) * w;
+        const y = h - ((closes[i] - min) / range) * (h - 4) - 2;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(w, h);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Line
+      ctx.beginPath();
+      for (let i = 0; i < closes.length; i++) {
+        const x = (i / (closes.length - 1)) * w;
+        const y = h - ((closes[i] - min) / range) * (h - 4) - 2;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = isUp ? '#34d399' : '#f87171';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // ── Main Chart ────────────────────────────────────────────────────
+    async function loadChartData() {
+      if (!marketsData[selectedMarketIdx]) return;
+      const epic = marketsData[selectedMarketIdx].epic;
+      try {
+        const res = await fetch(`/api/market/history/${epic}`);
+        chartData = await res.json();
+        renderCharts();
+      } catch (e) { /* ignore */ }
+    }
+
+    function renderCharts() {
+      if (!chartData) return;
+      const candles = chartData[selectedResolution] || [];
+      if (candles.length === 0) return;
+      drawCandlestick(document.getElementById('mainChart'), candles);
+      drawRSIChart(document.getElementById('rsiChart'), candles);
+      drawMACDChart(document.getElementById('macdChart'), candles);
+    }
+
+    function setupCanvas(canvas, height) {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.height = height + 'px';
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      return { ctx, w: rect.width, h: height };
+    }
+
+    function drawCandlestick(canvas, candles) {
+      if (!canvas) return;
+      const { ctx, w, h } = setupCanvas(canvas, 280);
+      ctx.clearRect(0, 0, w, h);
+
+      const pad = { l: 0, r: 50, t: 10, b: 20 };
+      const cw = (w - pad.l - pad.r) / candles.length;
+      const prices = candles.flatMap(c => [c.high, c.low]);
+      const minP = Math.min(...prices);
+      const maxP = Math.max(...prices);
+      const range = maxP - minP || 1;
+      const scaleY = (v) => pad.t + (1 - (v - minP) / range) * (h - pad.t - pad.b);
+
+      // Bollinger Bands
+      const closes = candles.map(c => c.close);
+      if (closes.length >= 20) {
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(251,191,36,0.3)';
+        ctx.lineWidth = 1;
+        for (let i = 19; i < closes.length; i++) {
+          let sum = 0;
+          for (let j = i - 19; j <= i; j++) sum += closes[j];
+          const sma = sum / 20;
+          let sq = 0;
+          for (let j = i - 19; j <= i; j++) sq += (closes[j] - sma) ** 2;
+          const std = Math.sqrt(sq / 20);
+          const x = pad.l + (i + 0.5) * cw;
+          const upper = scaleY(sma + 2 * std);
+          const lower = scaleY(sma - 2 * std);
+          if (i === 19) { ctx.moveTo(x, upper); }
+          else { ctx.lineTo(x, upper); }
+        }
+        ctx.stroke();
+        ctx.beginPath();
+        for (let i = 19; i < closes.length; i++) {
+          let sum = 0;
+          for (let j = i - 19; j <= i; j++) sum += closes[j];
+          const sma = sum / 20;
+          let sq = 0;
+          for (let j = i - 19; j <= i; j++) sq += (closes[j] - sma) ** 2;
+          const std = Math.sqrt(sq / 20);
+          const x = pad.l + (i + 0.5) * cw;
+          const lower = scaleY(sma - 2 * std);
+          if (i === 19) { ctx.moveTo(x, lower); }
+          else { ctx.lineTo(x, lower); }
+        }
+        ctx.stroke();
+      }
+
+      // Candles
+      for (let i = 0; i < candles.length; i++) {
+        const c = candles[i];
+        const x = pad.l + (i + 0.5) * cw;
+        const isUp = c.close >= c.open;
+        ctx.strokeStyle = isUp ? '#34d399' : '#f87171';
+        ctx.fillStyle = isUp ? '#34d399' : '#f87171';
+
+        // Wick
+        ctx.beginPath();
+        ctx.moveTo(x, scaleY(c.high));
+        ctx.lineTo(x, scaleY(c.low));
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Body
+        const bodyTop = scaleY(Math.max(c.open, c.close));
+        const bodyBot = scaleY(Math.min(c.open, c.close));
+        const bodyH = Math.max(1, bodyBot - bodyTop);
+        const bw = Math.max(1, cw * 0.6);
+        if (isUp) {
+          ctx.strokeRect(x - bw / 2, bodyTop, bw, bodyH);
+        } else {
+          ctx.fillRect(x - bw / 2, bodyTop, bw, bodyH);
+        }
+      }
+
+      // Price axis
+      ctx.fillStyle = '#475569';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= 4; i++) {
+        const v = minP + (range * i) / 4;
+        const y = scaleY(v);
+        ctx.fillText(v.toFixed(1), w - 4, y + 3);
+        ctx.beginPath();
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 0.5;
+        ctx.moveTo(pad.l, y);
+        ctx.lineTo(w - pad.r, y);
+        ctx.stroke();
+      }
+    }
+
+    function drawRSIChart(canvas, candles) {
+      if (!canvas) return;
+      const { ctx, w, h } = setupCanvas(canvas, 80);
+      ctx.clearRect(0, 0, w, h);
+      const closes = candles.map(c => c.close);
+      if (closes.length < 15) return;
+
+      const pad = { l: 0, r: 50, t: 5, b: 5 };
+      const cw = (w - pad.l - pad.r) / candles.length;
+
+      // Calculate RSI series
+      const rsiSeries = [];
+      for (let end = 15; end <= closes.length; end++) {
+        const slice = closes.slice(0, end);
+        rsiSeries.push({ idx: end - 1, rsi: calcRSILocal(slice) });
+      }
+
+      const scaleY = (v) => pad.t + (1 - v / 100) * (h - pad.t - pad.b);
+
+      // 30/70 lines
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash([4, 4]);
+      [30, 70].forEach(v => {
+        ctx.beginPath();
+        ctx.moveTo(pad.l, scaleY(v));
+        ctx.lineTo(w - pad.r, scaleY(v));
+        ctx.stroke();
+      });
+      ctx.setLineDash([]);
+
+      // RSI line
+      ctx.beginPath();
+      ctx.strokeStyle = '#a78bfa';
+      ctx.lineWidth = 1.5;
+      rsiSeries.forEach((r, i) => {
+        const x = pad.l + (r.idx + 0.5) * cw;
+        i === 0 ? ctx.moveTo(x, scaleY(r.rsi)) : ctx.lineTo(x, scaleY(r.rsi));
+      });
+      ctx.stroke();
+
+      // Oversold fill
+      ctx.beginPath();
+      rsiSeries.forEach((r, i) => {
+        const x = pad.l + (r.idx + 0.5) * cw;
+        const y = scaleY(Math.min(r.rsi, 30));
+        i === 0 ? ctx.moveTo(x, scaleY(30)) : ctx.lineTo(x, y);
+      });
+      ctx.lineTo(pad.l + (rsiSeries[rsiSeries.length - 1].idx + 0.5) * cw, scaleY(30));
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(248,113,113,0.15)';
+      ctx.fill();
+
+      // Labels
+      ctx.fillStyle = '#475569';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('RSI', w - 4, 12);
+      ctx.fillText('70', w - 4, scaleY(70) + 3);
+      ctx.fillText('30', w - 4, scaleY(30) + 3);
+    }
+
+    function drawMACDChart(canvas, candles) {
+      if (!canvas) return;
+      const { ctx, w, h } = setupCanvas(canvas, 80);
+      ctx.clearRect(0, 0, w, h);
+      const closes = candles.map(c => c.close);
+      if (closes.length < 26) return;
+
+      const pad = { l: 0, r: 50, t: 5, b: 5 };
+      const cw = (w - pad.l - pad.r) / candles.length;
+
+      // Calculate MACD
+      const ema12 = calcEMALocal(closes, 12);
+      const ema26 = calcEMALocal(closes, 26);
+      const macdLine = ema12.map((v, i) => v - ema26[i]);
+      const signalLine = calcEMALocal(macdLine, 9);
+      const histogram = macdLine.map((v, i) => v - signalLine[i]);
+
+      const allVals = [...macdLine.slice(26), ...histogram.slice(26)];
+      const maxV = Math.max(...allVals.map(Math.abs)) || 1;
+      const scaleY = (v) => h / 2 - (v / maxV) * (h / 2 - 8);
+
+      // Zero line
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(pad.l, h / 2);
+      ctx.lineTo(w - pad.r, h / 2);
+      ctx.stroke();
+
+      // Histogram
+      for (let i = 26; i < histogram.length; i++) {
+        const x = pad.l + (i + 0.5) * cw;
+        const barH = (histogram[i] / maxV) * (h / 2 - 8);
+        ctx.fillStyle = histogram[i] >= 0 ? 'rgba(52,211,153,0.5)' : 'rgba(248,113,113,0.5)';
+        ctx.fillRect(x - cw * 0.3, h / 2, cw * 0.6, -barH);
+      }
+
+      // MACD line
+      ctx.beginPath();
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 1.5;
+      for (let i = 26; i < macdLine.length; i++) {
+        const x = pad.l + (i + 0.5) * cw;
+        i === 26 ? ctx.moveTo(x, scaleY(macdLine[i])) : ctx.lineTo(x, scaleY(macdLine[i]));
+      }
+      ctx.stroke();
+
+      // Signal line
+      ctx.beginPath();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 1;
+      for (let i = 26; i < signalLine.length; i++) {
+        const x = pad.l + (i + 0.5) * cw;
+        i === 26 ? ctx.moveTo(x, scaleY(signalLine[i])) : ctx.lineTo(x, scaleY(signalLine[i]));
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = '#475569';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('MACD', w - 4, 12);
+    }
+
+    // Local calc helpers for frontend charts
+    function calcEMALocal(data, period) {
+      if (data.length === 0) return [];
+      const k = 2 / (period + 1);
+      const ema = [data[0]];
+      for (let i = 1; i < data.length; i++) ema.push(data[i] * k + ema[i - 1] * (1 - k));
+      return ema;
+    }
+    function calcRSILocal(closes, period = 14) {
+      if (closes.length < period + 1) return 50;
+      let avgGain = 0, avgLoss = 0;
+      for (let i = 1; i <= period; i++) {
+        const d = closes[i] - closes[i - 1];
+        if (d > 0) avgGain += d; else avgLoss -= d;
+      }
+      avgGain /= period; avgLoss /= period;
+      for (let i = period + 1; i < closes.length; i++) {
+        const d = closes[i] - closes[i - 1];
+        avgGain = (avgGain * (period - 1) + (d > 0 ? d : 0)) / period;
+        avgLoss = (avgLoss * (period - 1) + (d < 0 ? -d : 0)) / period;
+      }
+      if (avgLoss === 0) return 100;
+      return 100 - 100 / (1 + avgGain / avgLoss);
+    }
+
+    // ── Alerts ────────────────────────────────────────────────────────
+    async function loadAlerts() {
+      try {
+        const res = await fetch('/api/market/alerts');
+        const data = await res.json();
+        renderAlerts(data.alerts);
+      } catch (e) { /* ignore */ }
+    }
+
+    function renderAlerts(alertsList) {
+      const container = document.getElementById('alerts-list');
+      const unacked = alertsList.filter(a => !a.acknowledged).length;
+      document.getElementById('alert-count').textContent = unacked > 0 ? `(${unacked})` : '';
+
+      if (alertsList.length === 0) {
+        container.innerHTML = '<div class="empty-state">No alerts yet. Alerts will appear here when bottom signals are detected.</div>';
+        return;
+      }
+      container.innerHTML = alertsList.map(a => `
+        <div class="alert-item level-${a.level} ${a.acknowledged ? 'acknowledged' : ''}">
+          <div class="alert-header">
+            <span class="alert-market">${a.marketName}</span>
+            <span class="alert-time">${new Date(a.timestamp).toLocaleString()}</span>
+          </div>
+          <div class="alert-body">
+            Score: <span class="alert-score">${a.score}/100</span>
+            &bull; Price: ${a.price?.toFixed(1) || 'N/A'}
+            &bull; ${a.signals.map(s => s.name).join(', ')}
+          </div>
+          ${!a.acknowledged ? `<button class="alert-ack-btn" onclick="ackAlert('${a.id}')">Acknowledge</button>` : ''}
+        </div>
+      `).join('');
+    }
+
+    async function ackAlert(id) {
+      await fetch(`/api/market/alerts/${id}/ack`, { method: 'POST' });
+      loadAlerts();
+    }
+
+    // ── Push Notifications ────────────────────────────────────────────
+    async function togglePush() {
+      const toggle = document.getElementById('toggle-push');
+      if (!pushEnabled) {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') return;
+          const reg = await navigator.serviceWorker.ready;
+          const keyRes = await fetch('/api/market/vapid-key');
+          const { key } = await keyRes.json();
+          if (!key) { showToast('Push Error', 'VAPID key not configured on server'); return; }
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(key),
+          });
+          await fetch('/api/market/subscribe', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sub),
+          });
+          pushEnabled = true;
+          toggle.classList.add('on');
+        } catch (e) {
+          showToast('Push Error', e.message);
+        }
+      } else {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          await fetch('/api/market/subscribe', {
+            method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sub),
+          });
+          await sub.unsubscribe();
+        }
+        pushEnabled = false;
+        toggle.classList.remove('on');
+      }
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const raw = atob(base64);
+      return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+    }
+
+    // ── Audio Alert ───────────────────────────────────────────────────
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      document.getElementById('toggle-audio').classList.toggle('on', audioEnabled);
+    }
+
+    function playAlertSound() {
+      if (!audioEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(1100, audioCtx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.5);
+      } catch (e) { /* ignore */ }
+    }
+
+    // ── Toast ─────────────────────────────────────────────────────────
+    function showToast(title, body) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-title').textContent = title;
+      document.getElementById('toast-body').textContent = body;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+
+    // ── Test Alert ────────────────────────────────────────────────────
+    async function testAlert() {
+      await fetch('/api/market/test-alert', { method: 'POST' });
+      playAlertSound();
+      showToast('Test Alert', 'Score: 75/100 - This is a test alert');
+      loadAlerts();
+    }
+
+    // ── Market Search ─────────────────────────────────────────────────
+    function searchMarkets() {
+      document.getElementById('search-results').style.display = 'block';
+      document.getElementById('search-input').focus();
+    }
+    async function doSearch() {
+      const term = document.getElementById('search-input').value;
+      if (!term) return;
+      const list = document.getElementById('search-list');
+      list.innerHTML = 'Searching...';
+      try {
+        const res = await fetch(`/api/market/search?term=${encodeURIComponent(term)}`);
+        const data = await res.json();
+        if (data.markets.length === 0) { list.innerHTML = 'No results found'; return; }
+        list.innerHTML = data.markets.map(m =>
+          `<div style="padding:6px 0;border-bottom:1px solid #334155">
+            <strong>${m.name}</strong><br>
+            <span style="color:#64748b">Epic: ${m.epic} | Type: ${m.type} | ${m.status}</span>
+          </div>`
+        ).join('');
+      } catch (e) { list.innerHTML = 'Error: ' + e.message; }
+    }
+
+    // ── Check for new alerts (poll and notify) ────────────────────────
+    let lastAlertCount = 0;
+    async function checkNewAlerts() {
+      try {
+        const res = await fetch('/api/market/alerts');
+        const data = await res.json();
+        const unacked = data.alerts.filter(a => !a.acknowledged).length;
+        if (unacked > lastAlertCount && lastAlertCount >= 0) {
+          const latest = data.alerts[0];
+          if (latest && !latest.acknowledged) {
+            showToast(
+              `${latest.level === 'strong' ? '🔴' : '🟠'} ${latest.marketName}`,
+              `Score: ${latest.score}/100 - ${latest.signals.map(s => s.name).join(', ')}`
+            );
+            playAlertSound();
+          }
+        }
+        lastAlertCount = unacked;
+        document.getElementById('alert-count').textContent = unacked > 0 ? `(${unacked})` : '';
+      } catch (e) { /* ignore */ }
+    }
+
+    // ── Service Worker Registration ───────────────────────────────────
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────
+    fetchStatus();
+    loadChartData();
+    setInterval(fetchStatus, 30000);
+    setInterval(checkNewAlerts, 30000);
+    setInterval(loadChartData, 60000);
+  </script>
+</body>
+</html>
